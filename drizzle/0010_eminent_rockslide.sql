@@ -1,0 +1,1 @@
+ALTER TABLE "api_releases" ADD COLUMN "api_snapshot" jsonb;

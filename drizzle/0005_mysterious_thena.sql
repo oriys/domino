@@ -1,0 +1,2 @@
+CREATE TYPE "public"."doc_type" AS ENUM('rest_api', 'graphql_api', 'webhook', 'guideline');--> statement-breakpoint
+ALTER TABLE "products" ADD COLUMN "doc_type" "doc_type" DEFAULT 'guideline' NOT NULL;
