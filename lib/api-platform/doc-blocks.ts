@@ -792,6 +792,13 @@ export function hasSerializedBlockMetadata(markdown: string): boolean {
   return markdown.trimStart().startsWith(serializedBlocksPrefix)
 }
 
+export function stripSerializedBlockComments(markdown: string): string {
+  return markdown
+    .replace(/^\s*<!-- domino:blocks[\s\S]*?-->\s*/i, "")
+    .replace(/\s*<!-- domino:block -->\s*/gi, "\n\n")
+    .trim()
+}
+
 function extractSerializedBlocks(
   markdown: string,
 ): { metadata: SerializedBlockMeta[]; segments: string[] } | null {
@@ -857,7 +864,7 @@ export function parseMarkdownToBlocks(markdown: string): ContentBlock[] {
   }
 
   const blocks: ContentBlock[] = []
-  const sections = splitIntoSections(trimmed)
+  const sections = splitIntoSections(stripSerializedBlockComments(trimmed))
 
   for (let index = 0; index < sections.length; index++) {
     const section = sections[index]

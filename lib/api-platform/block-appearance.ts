@@ -175,14 +175,14 @@ export function getBlockAppearanceClasses(
   }[normalized.density]
 
   return {
-    shell: joinClasses("overflow-hidden rounded-3xl border", tone.shell, preset.shell),
+    shell: joinClasses("overflow-hidden rounded-xl border", tone.shell, preset.shell),
     header: joinClasses("flex items-center gap-3", tone.header, preset.header, density.header),
     body: density.body,
     badge: joinClasses("border text-[11px] font-medium", tone.badge),
     icon: joinClasses("h-4 w-4", tone.icon),
     accent: tone.accent,
-    inlineCard: joinClasses("rounded-2xl border p-4", tone.inlineCard, preset.inlineCard),
-    code: joinClasses("overflow-hidden rounded-2xl border", tone.code),
+    inlineCard: joinClasses("rounded-lg border p-4", tone.inlineCard, preset.inlineCard),
+    code: joinClasses("overflow-hidden rounded-lg border", tone.code),
     tableHead: tone.tableHead,
     tableCell: tone.tableCell,
   }

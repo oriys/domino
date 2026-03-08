@@ -115,13 +115,9 @@ import {
   serializeBlock,
 } from "@/lib/api-platform/doc-blocks"
 import {
-  blockDensityLabels,
   blockPresetLabels,
-  blockToneLabels,
-  defaultBlockAppearance,
   getBlockAppearanceClasses,
   normalizeBlockAppearance,
-  type BlockAppearance,
 } from "@/lib/api-platform/block-appearance"
 import { methodColors, calloutVariantStyles } from "@/lib/api-platform/status-styles"
 import { apiFieldTypes } from "@/lib/api-platform/types"
@@ -248,8 +244,6 @@ export function VisualDocEditor({ content, onChange, readOnly }: VisualDocEditor
     selectedBlockId && blocks.some((block) => block.id === selectedBlockId)
       ? selectedBlockId
       : blocks[0]?.id ?? null
-  const selectedBlockIndex = resolvedSelectedBlockId ? blocks.findIndex((b) => b.id === resolvedSelectedBlockId) : -1
-  const selectedBlock = selectedBlockIndex >= 0 ? blocks[selectedBlockIndex] : null
 
   // Re-parse blocks when content changes externally (e.g. switching from text mode)
   if (content !== lastExternalContent && content !== serializeBlocks(blocks)) {
@@ -309,33 +303,14 @@ export function VisualDocEditor({ content, onChange, readOnly }: VisualDocEditor
     setSelectedBlockId(copy.id)
   }
 
-  function updateSelectedBlockAppearance(patch: Partial<BlockAppearance>) {
-    if (selectedBlockIndex === -1 || !selectedBlock) return
-    updateBlock(selectedBlockIndex, {
-      ...selectedBlock,
-      appearance: {
-        ...selectedBlock.appearance,
-        ...patch,
-      },
-    })
-  }
-
-  function resetSelectedBlockAppearance() {
-    if (selectedBlockIndex === -1 || !selectedBlock) return
-    updateBlock(selectedBlockIndex, {
-      ...selectedBlock,
-      appearance: structuredClone(defaultBlockAppearance),
-    })
-  }
-
   const available = availableBlocks
 
   return (
-    <div className="flex h-full min-h-0 flex-col xl:flex-row">
+    <div className="flex h-full min-h-0 flex-col">
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto max-w-5xl space-y-3 p-6">
           {blocks.length === 0 && (
-            <div className="rounded-3xl border border-dashed border-border bg-muted/20 p-12 text-center">
+            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">
               <p className="mb-4 text-sm text-muted-foreground">还没有内容块。添加第一个块开始编辑。</p>
               <AddBlockMenu types={available} onAdd={(type) => addBlock(type)} />
             </div>
@@ -455,7 +430,7 @@ export function VisualDocEditor({ content, onChange, readOnly }: VisualDocEditor
             </SortableContext>
             <DragOverlay dropAnimation={null}>
               {activeBlock && (
-                <div className="rounded-2xl border border-primary/30 bg-card p-3 opacity-90 shadow-lg">
+                <div className="rounded-lg border border-primary/30 bg-card p-3 opacity-90 shadow-lg">
                   <div className="flex items-center gap-2">
                     <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
                     <Badge variant="secondary" className="px-1.5 text-[10px] font-normal">
@@ -468,16 +443,6 @@ export function VisualDocEditor({ content, onChange, readOnly }: VisualDocEditor
           </DndContext>
         </div>
       </ScrollArea>
-
-      {!readOnly && (
-        <aside className="min-h-0 border-t bg-background/80 backdrop-blur xl:w-[320px] xl:border-l xl:border-t-0">
-          <ComponentStyleInspector
-            block={selectedBlock}
-            onChange={updateSelectedBlockAppearance}
-            onReset={resetSelectedBlockAppearance}
-          />
-        </aside>
-      )}
     </div>
   )
 }
@@ -528,155 +493,6 @@ function AddBlockMenu({
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
-}
-
-function ComponentStyleInspector({
-  block,
-  onChange,
-  onReset,
-}: {
-  block: ContentBlock | null
-  onChange: (patch: Partial<BlockAppearance>) => void
-  onReset: () => void
-}) {
-  if (!block) {
-    return (
-      <div className="flex h-full items-center justify-center p-6 text-center">
-        <div className="max-w-[220px] space-y-3">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30">
-            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Component 样式</p>
-            <p className="text-xs leading-5 text-muted-foreground">
-              选中左侧任意组件块后，可以用预设、色调和密度来低代码调整它的视觉样式。
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const appearance = normalizeBlockAppearance(block.appearance)
-  const classes = getBlockAppearanceClasses(appearance)
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className="border-b px-5 py-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/70 bg-muted/30">
-            <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Component</p>
-            <p className="text-sm font-semibold">低代码样式面板</p>
-            <p className="text-xs leading-5 text-muted-foreground">
-              通过 token 级选项控制组件外观，不需要写自定义 CSS。
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <ScrollArea className="flex-1">
-        <div className="space-y-5 p-5">
-          <div className={cn(classes.inlineCard, "space-y-3")}>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/60 bg-background">
-                {renderBlockIcon(block.type, classes.icon)}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{blockLabels[block.type]}</p>
-                <p className="text-xs text-muted-foreground">点击左侧 block 即可切换当前组件</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className={cn("px-2 py-0.5", classes.badge)}>
-                {blockPresetLabels[appearance.preset]}
-              </Badge>
-              <Badge variant="outline" className="px-2 py-0.5 text-[11px]">
-                {blockToneLabels[appearance.tone]}
-              </Badge>
-              <Badge variant="outline" className="px-2 py-0.5 text-[11px]">
-                {blockDensityLabels[appearance.density]}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">风格预设</Label>
-              <Select
-                value={appearance.preset}
-                onValueChange={(value) => onChange({ preset: value as BlockAppearance["preset"] })}
-              >
-                <SelectTrigger className="mt-1.5 h-10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(blockPresetLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs text-muted-foreground">色调</Label>
-              <Select
-                value={appearance.tone}
-                onValueChange={(value) => onChange({ tone: value as BlockAppearance["tone"] })}
-              >
-                <SelectTrigger className="mt-1.5 h-10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(blockToneLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs text-muted-foreground">内容密度</Label>
-              <Select
-                value={appearance.density}
-                onValueChange={(value) => onChange({ density: value as BlockAppearance["density"] })}
-              >
-                <SelectTrigger className="mt-1.5 h-10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(blockDensityLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/15 p-4">
-            <p className="text-xs font-medium">建议</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              组件类型较多时，先统一 tone，再按重点内容挑一个 preset，会比逐块写 className 更稳定。
-            </p>
-          </div>
-        </div>
-      </ScrollArea>
-
-      <div className="border-t px-5 py-4">
-        <Button variant="outline" size="sm" className="w-full" onClick={onReset}>
-          重置为默认样式
-        </Button>
-      </div>
-    </div>
   )
 }
 

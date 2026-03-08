@@ -14,6 +14,7 @@ import {
   blockLabels,
   hasSerializedBlockMetadata,
   parseMarkdownToBlocks,
+  stripSerializedBlockComments,
   type AuthConfigData,
   type CalloutData,
   type CodeData,
@@ -217,7 +218,7 @@ function CodePanel({
   if (!code.trim()) return null
 
   return (
-    <div className={cn("overflow-hidden rounded-2xl border border-border/60 bg-muted/10", className)}>
+    <div className={cn("overflow-hidden rounded-lg border border-border/60 bg-muted/10", className)}>
       <div className="border-b px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </div>
@@ -240,7 +241,7 @@ function DataTable({
   if (headers.length === 0) return null
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
+    <div className="overflow-hidden rounded-lg border border-border/60 bg-background">
       <table className="w-full border-collapse text-sm">
         <thead className="bg-muted/45">
           <tr>
@@ -327,7 +328,7 @@ function renderStructuredBlock(
       }[data.variant]
 
       return (
-        <div key={block.id} className={cn("not-prose my-6 rounded-2xl border p-5", toneClasses)}>
+        <div key={block.id} className={cn("not-prose my-6 rounded-lg border p-5", toneClasses)}>
           <div className="text-xs font-semibold uppercase tracking-[0.18em]">{label}</div>
           <p className="mt-3 text-sm leading-6">{data.text}</p>
         </div>
@@ -342,7 +343,7 @@ function renderStructuredBlock(
           <img
             src={data.src}
             alt={data.alt || data.caption || "Illustration"}
-            className="w-full rounded-3xl border border-border/60 bg-muted/20 object-cover"
+            className="w-full rounded-xl border border-border/60 bg-muted/20 object-cover"
             style={data.width ? { maxWidth: `${data.width}px` } : undefined}
           />
           {data.caption.trim() ? (
@@ -450,7 +451,7 @@ function renderStructuredBlock(
         <ComponentFrame key={block.id} block={block} title={data.title || "步骤"} subtitle="Workflow">
           <div className="space-y-3">
             {data.steps.map((step, index) => (
-              <div key={`${step.label}-${index}`} className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+              <div key={`${step.label}-${index}`} className="rounded-lg border border-border/60 bg-background px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-xs font-semibold">
                     {index + 1}
@@ -473,7 +474,7 @@ function renderStructuredBlock(
       return (
         <ComponentFrame key={block.id} block={block} title="Recommendations" subtitle="Do / Don&apos;t">
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-success/20 bg-success/[0.05] p-4">
+            <div className="rounded-lg border border-success/20 bg-success/[0.05] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-success">Do</p>
               <ul className="mt-3 space-y-2 text-sm leading-6">
                 {data.dos.map((item, index) => (
@@ -481,7 +482,7 @@ function renderStructuredBlock(
                 ))}
               </ul>
             </div>
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/[0.05] p-4">
+            <div className="rounded-lg border border-destructive/20 bg-destructive/[0.05] p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-destructive">Don&apos;t</p>
               <ul className="mt-3 space-y-2 text-sm leading-6">
                 {data.donts.map((item, index) => (
@@ -541,7 +542,7 @@ function renderStructuredBlock(
           {details.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-2">
               {details.map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+                <div key={label} className="rounded-lg border border-border/60 bg-background px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
                   <p className="mt-2 text-sm leading-6">{value}</p>
                 </div>
@@ -557,7 +558,7 @@ function renderStructuredBlock(
         <ComponentFrame key={block.id} block={block} title="Error Responses" subtitle="Failure modes">
           <div className="space-y-4">
             {data.responses.map((response) => (
-              <div key={response.statusCode} className="rounded-2xl border border-border/60 bg-background p-4">
+              <div key={response.statusCode} className="rounded-lg border border-border/60 bg-background p-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <Badge variant="outline">{response.statusCode}</Badge>
                   <p className="text-sm font-medium">{response.description}</p>
@@ -597,7 +598,7 @@ function renderStructuredBlock(
         <ComponentFrame key={block.id} block={block} title="Servers" subtitle="Environment configuration">
           <div className="space-y-4">
             {data.servers.map((server, index) => (
-              <div key={`${server.url}-${index}`} className="rounded-2xl border border-border/60 bg-background p-4">
+              <div key={`${server.url}-${index}`} className="rounded-lg border border-border/60 bg-background p-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <Badge variant="outline">{server.description || `Server ${index + 1}`}</Badge>
                   <code className="text-sm">{server.url}</code>
@@ -629,7 +630,7 @@ function renderStructuredBlock(
             <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
           ) : null}
           {data.composition ? (
-            <div className="rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm">
+            <div className="rounded-lg border border-border/60 bg-background px-4 py-3 text-sm">
               <span className="text-muted-foreground">Composition:</span>{" "}
               <strong>{data.composition.type}</strong>{" "}
               {data.composition.refs.map((ref) => `#/${ref}`).join(", ")}
@@ -665,7 +666,7 @@ function renderStructuredBlock(
               ["Remaining", data.headers.remaining],
               ["Reset", data.headers.reset],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+              <div key={label} className="rounded-lg border border-border/60 bg-background px-4 py-3">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
                 <code className="mt-2 block text-sm">{value}</code>
               </div>
@@ -753,7 +754,7 @@ function renderStructuredBlock(
             ]
               .filter((item): item is [string, string] => Boolean(item))
               .map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-border/60 bg-background px-4 py-3">
+                <div key={label} className="rounded-lg border border-border/60 bg-background px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
                   <p className="mt-2 text-sm leading-6">{value}</p>
                 </div>
@@ -784,7 +785,7 @@ export function DocumentRenderer({
     return <div className={className}>{blocks.map((block) => renderStructuredBlock(block, exampleMap))}</div>
   }
 
-  const segments = splitIntoSegments(resolved)
+  const segments = splitIntoSegments(stripSerializedBlockComments(resolved))
 
   return (
     <div className={className}>
