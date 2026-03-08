@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils"
+
 export type BlockPreset = "default" | "soft" | "outline" | "emphasis"
 export type BlockTone = "neutral" | "brand" | "success" | "warning" | "danger"
 export type BlockDensity = "compact" | "comfortable" | "spacious"
@@ -21,7 +23,19 @@ export const blockPresetLabels: Record<BlockPreset, string> = {
   emphasis: "强调",
 }
 
-import { cn } from "@/lib/utils"
+export const blockToneLabels: Record<BlockTone, string> = {
+  neutral: "中性",
+  brand: "品牌",
+  success: "成功",
+  warning: "警示",
+  danger: "危险",
+}
+
+export const blockDensityLabels: Record<BlockDensity, string> = {
+  compact: "紧凑",
+  comfortable: "舒适",
+  spacious: "宽松",
+}
 
 export function normalizeBlockAppearance(
   appearance?: Partial<BlockAppearance> | null,

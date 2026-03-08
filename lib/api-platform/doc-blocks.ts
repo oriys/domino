@@ -166,6 +166,14 @@ interface SerializedBlockMeta {
   appearance?: BlockAppearance
 }
 
+export interface VisualEditingSupportReport {
+  fidelity: "structured" | "compatible" | "warning"
+  hasSerializedMetadata: boolean
+  roundTripSafe: boolean
+  rawMarkdownBlockCount: number
+  details: string[]
+}
+
 const serializedBlocksPrefix = "<!-- domino:blocks "
 const serializedBlockDivider = "<!-- domino:block -->"
 
@@ -790,6 +798,81 @@ export function serializeBlock(block: ContentBlock): string {
 
 export function hasSerializedBlockMetadata(markdown: string): boolean {
   return markdown.trimStart().startsWith(serializedBlocksPrefix)
+}
+
+function normalizeMarkdownForComparison(markdown: string): string {
+  return stripSerializedBlockComments(markdown)
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/\s+$/g, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
+function hasAdvancedMarkdownSyntax(content: string): boolean {
+  return /(^|\n)\s*(?:[-*+]\s+|\d+\.\s+|>\s+|!\[.+\]\(.+\)|\[[^\]]+\]\([^)]+\)|#{1,6}\s+|\|.+\||```|<\w+)/m.test(content)
+}
+
+export function analyzeVisualEditingSupport(markdown: string): VisualEditingSupportReport {
+  const trimmed = markdown.trim()
+  if (!trimmed) {
+    return {
+      fidelity: "compatible",
+      hasSerializedMetadata: false,
+      roundTripSafe: true,
+      rawMarkdownBlockCount: 0,
+      details: ["This draft is empty. Add a template or start typing in Markdown."],
+    }
+  }
+
+  if (hasSerializedBlockMetadata(trimmed)) {
+    return {
+      fidelity: "structured",
+      hasSerializedMetadata: true,
+      roundTripSafe: true,
+      rawMarkdownBlockCount: 0,
+      details: [
+        "This page is already stored as structured blocks.",
+        "Switching between visual, split, and preview modes will preserve the current layout.",
+      ],
+    }
+  }
+
+  const parsedBlocks = parseMarkdownToBlocks(trimmed)
+  const rawMarkdownBlockCount = parsedBlocks.filter((block) => {
+    if (block.type !== "text") return false
+    return hasAdvancedMarkdownSyntax((block.data as TextData).content)
+  }).length
+
+  const roundTripSafe =
+    normalizeMarkdownForComparison(trimmed) ===
+    normalizeMarkdownForComparison(serializeBlocks(parsedBlocks))
+
+  const details = roundTripSafe
+    ? rawMarkdownBlockCount > 0
+      ? [
+          `Visual mode can open this page, but ${rawMarkdownBlockCount} freeform Markdown section${rawMarkdownBlockCount === 1 ? "" : "s"} will stay as raw content.`,
+          "Use text-mode editing inside those sections when you need formatting the visual blocks do not model yet.",
+        ]
+      : [
+          "Current Markdown maps cleanly to Domino blocks.",
+          "Visual mode will keep the document structure intact on the next save.",
+        ]
+    : [
+        "Visual mode can open this page, but it will normalize some Markdown into Domino blocks on save.",
+        rawMarkdownBlockCount > 0
+          ? `${rawMarkdownBlockCount} section${rawMarkdownBlockCount === 1 ? "" : "s"} will remain raw Markdown because they use patterns the structured blocks do not cover yet.`
+          : "If you need exact source formatting, stay in Markdown mode for this edit.",
+      ]
+
+  return {
+    fidelity: roundTripSafe ? "compatible" : "warning",
+    hasSerializedMetadata: false,
+    roundTripSafe,
+    rawMarkdownBlockCount,
+    details,
+  }
 }
 
 export function stripSerializedBlockComments(markdown: string): string {

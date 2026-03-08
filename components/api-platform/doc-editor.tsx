@@ -77,6 +77,10 @@ import { useAutosave } from "@/hooks/use-autosave"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { EditorView } from "@codemirror/view"
 import {
+  analyzeVisualEditingSupport,
+  type VisualEditingSupportReport,
+} from "@/lib/api-platform/doc-blocks"
+import {
   getContentLibrarySnapshot,
   getDocPage,
   listDocPageVersions,
@@ -606,6 +610,8 @@ export function DocEditor({ pageId, onBack }: DocEditorProps) {
 
   // ── Feature 2: Unsaved confirm dialog state ────────────────────────────────
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false)
+  const [showVisualModeConfirm, setShowVisualModeConfirm] = useState(false)
+  const [pendingModeSelection, setPendingModeSelection] = useState<EditorMode | null>(null)
 
   // ── Feature 3: Outline panel state ─────────────────────────────────────────
   const [showOutline, setShowOutline] = useState(false)
@@ -647,14 +653,19 @@ export function DocEditor({ pageId, onBack }: DocEditorProps) {
     }
   }, [content, dirty, page, pageId])
 
-  const isEditorReadOnlyForAutosave = !!previewingVersion
+  const isEditorReadOnly = !!previewingVersion
+  const activeContent = previewingVersion ? previewingVersion.content : content
+  const visualSupportReport = useMemo<VisualEditingSupportReport>(
+    () => analyzeVisualEditingSupport(activeContent),
+    [activeContent],
+  )
 
   const { recoverDraft, clearDraft } = useAutosave({
     pageId,
     content,
     dirty,
     saving,
-    readOnly: isEditorReadOnlyForAutosave,
+    readOnly: isEditorReadOnly,
     onSave: handleSave,
   })
 
@@ -780,12 +791,40 @@ export function DocEditor({ pageId, onBack }: DocEditorProps) {
     setDirty(true)
   }
 
-  function handleModeSelect(nextMode: EditorMode) {
+  const commitModeSelection = useCallback((nextMode: EditorMode) => {
     setMode(nextMode)
     if (nextMode === "preview") {
       setSplitView(false)
     }
-  }
+  }, [])
+
+  const handleModeSelect = useCallback((nextMode: EditorMode) => {
+    if (
+      nextMode === "visual" &&
+      mode !== "visual" &&
+      !isEditorReadOnly &&
+      visualSupportReport.fidelity === "warning"
+    ) {
+      setPendingModeSelection(nextMode)
+      setShowVisualModeConfirm(true)
+      return
+    }
+
+    commitModeSelection(nextMode)
+  }, [commitModeSelection, isEditorReadOnly, mode, visualSupportReport.fidelity])
+
+  const confirmVisualModeSelection = useCallback(() => {
+    if (pendingModeSelection) {
+      commitModeSelection(pendingModeSelection)
+    }
+    setPendingModeSelection(null)
+    setShowVisualModeConfirm(false)
+  }, [commitModeSelection, pendingModeSelection])
+
+  const dismissVisualModeConfirm = useCallback(() => {
+    setPendingModeSelection(null)
+    setShowVisualModeConfirm(false)
+  }, [])
 
   // ── Feature 5: Undo / Redo handlers ────────────────────────────────────────
   const handleUndo = useCallback(() => {
@@ -894,7 +933,7 @@ export function DocEditor({ pageId, onBack }: DocEditorProps) {
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [handleSave, handleUndo, handleRedo, mode, page?.status, can])
+  }, [handleModeSelect, handleSave, handleUndo, handleRedo, mode, page?.status, can])
 
   async function handlePublish() {
     if (!page) return
@@ -1012,7 +1051,6 @@ export function DocEditor({ pageId, onBack }: DocEditorProps) {
   const showPreviewPane = mode === "preview" || splitView
   const nextVersion = `v${versions.length + 1}`
   const isWorkflowBusy = publishAction !== null
-  const isEditorReadOnly = !!previewingVersion
   const actionDisabled = isWorkflowBusy || saving || !!previewingVersion
   const publishActionDisabled = actionDisabled || page.status === "published" || !can("canPublish")
   const unpublishActionDisabled = actionDisabled || page.status !== "published" || !can("canPublish")
@@ -1397,16 +1435,17 @@ export function DocEditor({ pageId, onBack }: DocEditorProps) {
         {showVisualEditor && (
           <div className={cn("min-h-0 flex-1 overflow-hidden", splitView && "border-r")}>
             <VisualDocEditor
-              content={previewingVersion ? previewingVersion.content : content}
+              content={activeContent}
               onChange={handleContentChange}
               readOnly={isEditorReadOnly}
+              supportReport={visualSupportReport}
             />
           </div>
         )}
         {showMarkdownEditor && (
           <div className={cn("min-h-0 flex-1 overflow-hidden", splitView && "border-r")}>
             <MarkdownEditor
-              value={previewingVersion ? previewingVersion.content : content}
+              value={activeContent}
               onChange={handleContentChange}
               placeholder="Start writing in Markdown..."
               readOnly={isEditorReadOnly}
@@ -1419,7 +1458,7 @@ export function DocEditor({ pageId, onBack }: DocEditorProps) {
           <ScrollArea className="flex-1">
             <div className="prose dark:prose-invert max-w-none p-8">
               <DocumentRenderer
-                content={previewingVersion ? previewingVersion.content : content}
+                content={activeContent}
                 snippets={snippets}
                 examples={examples}
               />
@@ -1566,6 +1605,51 @@ export function DocEditor({ pageId, onBack }: DocEditorProps) {
             </Button>
             <Button variant="destructive" size="sm" onClick={confirmLeave}>
               Leave without saving
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showVisualModeConfirm}
+        onOpenChange={(open) => {
+          if (!open) {
+            dismissVisualModeConfirm()
+            return
+          }
+          setShowVisualModeConfirm(open)
+        }}
+      >
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              Visual mode will normalize this Markdown
+            </DialogTitle>
+            <DialogDescription>
+              Domino can open this page in visual mode, but saving from the visual editor may rewrite some source formatting into structured blocks.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-xl border border-warning/20 bg-warning/[0.08] p-3">
+              <ul className="space-y-2 text-sm text-foreground">
+                {visualSupportReport.details.map((detail) => (
+                  <li key={detail} className="leading-6">
+                    {detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="text-xs leading-5 text-muted-foreground">
+              Stay in Markdown mode if you need exact control over the source. Open visual mode when you want structure, templates, and inspector-based editing.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={dismissVisualModeConfirm}>
+              Stay in Markdown
+            </Button>
+            <Button size="sm" onClick={confirmVisualModeSelection}>
+              Open visual mode
             </Button>
           </DialogFooter>
         </DialogContent>
