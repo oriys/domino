@@ -21,7 +21,6 @@ import {
   Quote,
   Server,
   ShieldCheck,
-  SlidersHorizontal,
   Table,
   Trash2,
   Type,
@@ -80,6 +79,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   type BlockType,
+  type CommonBlockType,
   type ContentBlock,
   type CalloutData,
   type CodeData,
@@ -107,6 +107,7 @@ import {
   type SecuritySchemeData,
   availableBlocks,
   blockLabels,
+  commonBlocks,
   createDefaultBlock,
   extractStandaloneCodeBlockData,
   parseMarkdownToBlocks,
@@ -479,8 +480,8 @@ function AddBlockMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="w-48">
         {types.map((type, i) => {
-          const isCommon = ["heading", "text", "code", "table", "callout", "image"].includes(type)
-          const prevIsCommon = i > 0 && ["heading", "text", "code", "table", "callout", "image"].includes(types[i - 1])
+          const isCommon = commonBlocks.includes(type as CommonBlockType)
+          const prevIsCommon = i > 0 && commonBlocks.includes(types[i - 1] as CommonBlockType)
           return (
             <div key={type}>
               {!isCommon && prevIsCommon && <DropdownMenuSeparator />}

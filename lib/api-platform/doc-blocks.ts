@@ -205,7 +205,7 @@ export const blockLabels: Record<BlockType, string> = {
   security_scheme: "安全方案",
 }
 
-const commonBlocks: CommonBlockType[] = ["heading", "text", "code", "table", "callout", "image"]
+export const commonBlocks: CommonBlockType[] = ["heading", "text", "code", "table", "callout", "image"]
 const apiComponentBlocks: ApiComponentBlockType[] = ["param_table", "auth_config", "error_responses", "field_table"]
 
 const allBlocks: BlockType[] = [

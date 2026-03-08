@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useMemo, type ReactNode } from "react"
 import ReactMarkdown from "react-markdown"
 import rehypeHighlight from "rehype-highlight"
 import remarkGfm from "remark-gfm"
@@ -268,6 +268,28 @@ function DataTable({
   )
 }
 
+function DetailCard({
+  label,
+  children,
+  className,
+}: {
+  label: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn("rounded-lg border border-border/60 bg-background px-4 py-3", className)}>
+      <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <div className="mt-2 text-sm leading-6">{children}</div>
+    </div>
+  )
+}
+
+function OptionalDescription({ text }: { text: string | undefined }) {
+  if (!text?.trim()) return null
+  return <p className="text-sm leading-6 text-muted-foreground">{text}</p>
+}
+
 function renderStructuredBlock(
   block: ContentBlock,
   exampleMap: Map<string, ExampleSetResolved>,
@@ -362,9 +384,7 @@ function renderStructuredBlock(
           subtitle="Endpoint contract"
           trailing={<MethodBadge method={data.method} />}
         >
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           {data.headers.length > 0 ? (
             <DataTable
               headers={["Header", "Value"]}
@@ -388,9 +408,7 @@ function renderStructuredBlock(
           subtitle="GraphQL operation"
           trailing={<Badge variant="outline">{data.operationType}</Badge>}
         >
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           <div className="grid gap-4 lg:grid-cols-[1.35fr_minmax(0,0.9fr)]">
             <CodePanel label="Operation" code={data.code} language="graphql" />
             <CodePanel label="Variables" code={data.variables} language="json" />
@@ -416,9 +434,7 @@ function renderStructuredBlock(
           subtitle="Webhook event"
           trailing={<Badge variant="outline">{data.eventName}</Badge>}
         >
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           <CodePanel label="Payload" code={data.payload} language="json" />
         </ComponentFrame>
       )
@@ -427,9 +443,7 @@ function renderStructuredBlock(
       const data = block.data as WebhookVerifyData
       return (
         <ComponentFrame key={block.id} block={block} title="Signature Verification" subtitle="Webhook security">
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           <CodePanel label={data.language || "Code"} code={data.code} language={data.language} />
         </ComponentFrame>
       )
@@ -438,9 +452,7 @@ function renderStructuredBlock(
       const data = block.data as WebhookRetryData
       return (
         <ComponentFrame key={block.id} block={block} title="Retry Policy" subtitle="Delivery behavior">
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           <DataTable headers={["Attempt", "Delay"]} rows={data.rows.map((row) => [row.attempt, row.delay])} />
         </ComponentFrame>
       )
@@ -536,16 +548,11 @@ function renderStructuredBlock(
           subtitle="Access requirements"
           trailing={<Badge variant="outline">{data.authType}</Badge>}
         >
-          {data.description?.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           {details.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-2">
               {details.map(([label, value]) => (
-                <div key={label} className="rounded-lg border border-border/60 bg-background px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-                  <p className="mt-2 text-sm leading-6">{value}</p>
-                </div>
+                <DetailCard key={label} label={label}>{value}</DetailCard>
               ))}
             </div>
           ) : null}
@@ -626,9 +633,7 @@ function renderStructuredBlock(
       const data = block.data as SchemaModelData
       return (
         <ComponentFrame key={block.id} block={block} title={data.name} subtitle="Schema model">
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           {data.composition ? (
             <div className="rounded-lg border border-border/60 bg-background px-4 py-3 text-sm">
               <span className="text-muted-foreground">Composition:</span>{" "}
@@ -653,9 +658,7 @@ function renderStructuredBlock(
       const data = block.data as RateLimitData
       return (
         <ComponentFrame key={block.id} block={block} title="Rate Limits" subtitle="Traffic control">
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           <DataTable
             headers={["Tier", "Limit", "Window", "Description"]}
             rows={data.limits.map((limit) => [limit.name, String(limit.limit), limit.window, limit.description])}
@@ -666,10 +669,7 @@ function renderStructuredBlock(
               ["Remaining", data.headers.remaining],
               ["Reset", data.headers.reset],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-lg border border-border/60 bg-background px-4 py-3">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-                <code className="mt-2 block text-sm">{value}</code>
-              </div>
+              <DetailCard key={label} label={label}><code>{value}</code></DetailCard>
             ))}
           </div>
         </ComponentFrame>
@@ -685,9 +685,7 @@ function renderStructuredBlock(
           subtitle="Collection traversal"
           trailing={<Badge variant="outline">{data.style}</Badge>}
         >
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           {data.parameters.length > 0 ? (
             <DataTable
               headers={["Parameter", "Type", "Required", "Default", "Description"]}
@@ -740,9 +738,7 @@ function renderStructuredBlock(
           subtitle="Security scheme"
           trailing={<Badge variant="outline">{data.type}</Badge>}
         >
-          {data.description.trim() ? (
-            <p className="text-sm leading-6 text-muted-foreground">{data.description}</p>
-          ) : null}
+          <OptionalDescription text={data.description} />
           <div className="grid gap-3 md:grid-cols-2">
             {[
               ["Type", data.type],
@@ -754,10 +750,7 @@ function renderStructuredBlock(
             ]
               .filter((item): item is [string, string] => Boolean(item))
               .map(([label, value]) => (
-                <div key={label} className="rounded-lg border border-border/60 bg-background px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-                  <p className="mt-2 text-sm leading-6">{value}</p>
-                </div>
+                <DetailCard key={label} label={label}>{value}</DetailCard>
               ))}
           </div>
           {data.oauth2Flows?.trim() ? (
@@ -778,7 +771,7 @@ export function DocumentRenderer({
   className,
 }: DocumentRendererProps) {
   const resolved = resolveSnippetContent(content, snippets)
-  const exampleMap = new Map(examples.map((example) => [example.slug, example]))
+  const exampleMap = useMemo(() => new Map(examples.map((example) => [example.slug, example])), [examples])
 
   if (hasSerializedBlockMetadata(resolved)) {
     const blocks = parseMarkdownToBlocks(resolved)

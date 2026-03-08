@@ -21,23 +21,7 @@ export const blockPresetLabels: Record<BlockPreset, string> = {
   emphasis: "强调",
 }
 
-export const blockToneLabels: Record<BlockTone, string> = {
-  neutral: "中性",
-  brand: "品牌",
-  success: "成功",
-  warning: "警示",
-  danger: "危险",
-}
-
-export const blockDensityLabels: Record<BlockDensity, string> = {
-  compact: "紧凑",
-  comfortable: "舒适",
-  spacious: "宽松",
-}
-
-function joinClasses(...classes: Array<string | null | undefined | false>) {
-  return classes.filter(Boolean).join(" ")
-}
+import { cn } from "@/lib/utils"
 
 export function normalizeBlockAppearance(
   appearance?: Partial<BlockAppearance> | null,
@@ -175,14 +159,14 @@ export function getBlockAppearanceClasses(
   }[normalized.density]
 
   return {
-    shell: joinClasses("overflow-hidden rounded-xl border", tone.shell, preset.shell),
-    header: joinClasses("flex items-center gap-3", tone.header, preset.header, density.header),
+    shell: cn("overflow-hidden rounded-xl border", tone.shell, preset.shell),
+    header: cn("flex items-center gap-3", tone.header, preset.header, density.header),
     body: density.body,
-    badge: joinClasses("border text-[11px] font-medium", tone.badge),
-    icon: joinClasses("h-4 w-4", tone.icon),
+    badge: cn("border text-[11px] font-medium", tone.badge),
+    icon: cn("h-4 w-4", tone.icon),
     accent: tone.accent,
-    inlineCard: joinClasses("rounded-lg border p-4", tone.inlineCard, preset.inlineCard),
-    code: joinClasses("overflow-hidden rounded-lg border", tone.code),
+    inlineCard: cn("rounded-lg border p-4", tone.inlineCard, preset.inlineCard),
+    code: cn("overflow-hidden rounded-lg border", tone.code),
     tableHead: tone.tableHead,
     tableCell: tone.tableCell,
   }
